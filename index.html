@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>In-Between: Pinoy Version</title>
+    <style>
+        :root {
+            --felt-green: #27ae60;
+            --felt-dark: #145a32;
+            --card-white: #f5f5f5;
+            --gold: #f1c40f;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --text-dark: #2c3e50;
+            --modal-bg: rgba(0, 0, 0, 0.85);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--felt-green);
+            background-image: radial-gradient(circle, var(--felt-green) 0%, var(--felt-dark) 90%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* --- LANDING PAGE --- */
+        #landing-page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000;
+            background: linear-gradient(135deg, #1e8449 0%, #0b5345 100%);
+            transition: transform 0.5s ease-in-out;
+        }
+        .title-container { text-align: center; margin-bottom: 50px; z-index: 2; }
+        .title-line-1 { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.5); margin: 0; line-height: 1; animation: popIn 0.8s; }
+        .title-line-2 { font-size: 1.8rem; color: var(--gold); font-family: 'Brush Script MT', cursive; margin-top: 5px; animation: slideUp 1s; }
+        
+        .btn-start { 
+            padding: 18px 50px; font-size: 1.2rem; font-weight: bold; color: #fff; 
+            background: linear-gradient(to right, #e67e22, #d35400); 
+            border: 2px solid #fff; border-radius: 50px; cursor: pointer; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4); z-index: 2; text-transform: uppercase; 
+            animation: pulseBtn 2s infinite; margin-bottom: 20px;
+        }
+        
+        .btn-settings {
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+            color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;
+            z-index: 2; font-size: 0.9rem; transition: background 0.2s;
+        }
+        .btn-settings:hover { background: rgba(255,255,255,0.3); }
+
+        .bg-suit { position: absolute; color: rgba(255,255,255,0.05); font-size: 4rem; animation: floatUp 10s linear infinite; z-index: 1; }
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slideUp { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes floatUp { 0% { transform: translateY(110vh) rotate(0deg); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; } }
+
+        /* --- SETTINGS MODAL --- */
+        #settings-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg); z-index: 2000;
+            justify-content: center; align-items: center; flex-direction: column;
+            animation: fadeIn 0.3s;
+        }
+        .settings-box {
+            background: #2c3e50; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px;
+            border: 2px solid var(--gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .settings-title { color: var(--gold); font-size: 1.5rem; text-align: center; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; }
+        
+        .setting-row { margin-bottom: 20px; }
+        .setting-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .setting-val { color: var(--success); font-weight: bold; }
+        
+        input[type=range] { width: 100%; height: 6px; background: #555; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; cursor: pointer; }
+
+        .btn-close-settings {
+            width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- GAME WRAPPER --- */
+        #game-wrapper { display: none; height: 100%; width: 100%; flex-direction: column; opacity: 0; transition: opacity 0.5s; }
+
+        .scoreboard { display: flex; justify-content: space-between; padding: 10px 20px; background: rgba(0,0,0,0.4); z-index: 20; position: relative; }
+        .score-box { text-align: center; position: relative; width: 100px; }
+        .score-box small { display: block; font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
+        .score-box span { font-size: 1.2rem; color: var(--gold); font-weight: bold; }
+
+        /* FLOATING DEDUCTION ANIMATION */
+        .float-deduction {
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            color: var(--danger); font-weight: bold; font-size: 1.5rem;
+            text-shadow: 1px 1px 0px white; pointer-events: none;
+            animation: floatDownFade 1.5s ease-out forwards;
+        }
+        @keyframes floatDownFade { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 30px); } }
+
+        .game-area { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .deck-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 110px; z-index: 5; }
+        .deck-card { width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; position: absolute; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .deck-card:nth-child(1) { transform: translate(0, 0); }
+        .deck-card:nth-child(2) { transform: translate(-2px, -2px); }
+        .deck-card:nth-child(3) { transform: translate(-4px, -4px); }
+
+        .hand-area { width: 100%; max-width: 500px; display: flex; justify-content: space-between; padding: 0 20px; z-index: 2; }
+        .card-slot { width: 30%; aspect-ratio: 2.5/3.5; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; position: relative; }
+        
+        .card { width: 100%; height: 100%; background: var(--card-white); border-radius: 6px; color: var(--text-dark); display: flex; flex-direction: column; justify-content: space-between; padding: 5px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: absolute; top: 0; left: 0; }
+        .card.red { color: #c0392b; }
+        .card.black { color: #2c3e50; }
+        .card-center { font-size: 2rem; align-self: center; margin-top: auto; margin-bottom: auto;}
+        .card-corner.bottom { transform: rotate(180deg); }
+
+        .flying-card { position: absolute; width: 80px; height: 110px; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; z-index: 100; transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+        .info-panel { min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; margin-top: auto; margin-bottom: 20px; }
+        .main-msg { font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px black; }
+        .sub-msg { font-size: 0.9rem; opacity: 0.8; }
+
+        .controls { background: var(--felt-dark); padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .bet-ui { display: none; width: 100%; animation: slideUp 0.3s ease; }
+        .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .btn-row { display: flex; gap: 10px; }
+        button { border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        .btn-deal { width: 100%; background: var(--gold); color: #333; }
+        .btn-bet { flex: 1; background: var(--success); color: white; }
+        .btn-pass { flex: 1; background: var(--danger); color: white; }
+
+        .turn-overlay { position: absolute; top: 100px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; transition: opacity 0.3s; opacity: 0; }
+        .shuffle-anim { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0% { transform: translate(-50%, -50%) rotate(0deg); } 25% { transform: translate(-52%, -48%) rotate(-5deg); } 50% { transform: translate(-48%, -52%) rotate(5deg); } 75% { transform: translate(-52%, -48%) rotate(-5deg); } 100% { transform: translate(-50%, -50%) rotate(0deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="landing-page">
+        <div class="bg-suit" style="left: 10%; animation-duration: 8s;">♠</div>
+        <div class="bg-suit" style="left: 80%; animation-duration: 12s; animation-delay: 2s;">♥</div>
+        <div class="bg-suit" style="left: 20%; animation-duration: 15s; animation-delay: 5s;">♣</div>
+        <div class="bg-suit" style="left: 70%; animation-duration: 9s; animation-delay: 1s;">♦</div>
+
+        <div class="title-container">
+            <h1 class="title-line-1">In-Between</h1>
+            <div class="title-line-2">Pinoy Version</div>
+        </div>
+        
+        <button class="btn-start" onclick="enterGame()">Start Game</button>
+        <button class="btn-settings" onclick="toggleSettings(true)">⚙ Settings</button>
+    </div>
+
+    <div id="settings-modal">
+        <div class="settings-box">
+            <div class="settings-title">Game Settings</div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <span>Starting Money</span>
+                    <span id="set-money-val" class="setting-val">1000</span>
+                </div>
+                <input type="range" id="input-money" min="500" max="10000" step="100" value="1000" oninput="updateSettingsUI()">
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <span>Pass Penalty (Taya)</span>
+                    <span id="set-fee-val" class="setting-val">10</span>
+                </div>
+                <input type="range" id="input-fee" min="5" max="500" step="5" value="10" oninput="updateSettingsUI()">
+            </div>
+
+            <button class="btn-close-settings" onclick="toggleSettings(false)">Save & Close</button>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div class="scoreboard">
+            <div class="score-box" id="p-score-box">
+                <small>Player</small>
+                <span id="p-bank">1000</span>
+            </div>
+            <div class="score-box" id="c-score-box">
+                <small>CPU Enemy</small>
+                <span id="c-bank">1000</span>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div id="turn-indicator" class="turn-overlay">CPU Turn</div>
+            <div class="deck-container" id="deck-anchor">
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+            </div>
+            <div class="hand-area">
+                <div class="card-slot" id="slot-1"></div>
+                <div class="card-slot" id="slot-result"></div>
+                <div class="card-slot" id="slot-2"></div>
+            </div>
+            <div class="info-panel">
+                <div class="main-msg" id="msg-main">Welcome</div>
+                <div class="sub-msg" id="msg-sub">Press Start to begin</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div id="panel-deal">
+                <button class="btn-deal" id="btn-deal" onclick="game.startRound()">Start Round</button>
+            </div>
+            <div id="panel-bet" class="bet-ui">
+                <div class="slider-row">
+                    <span>Bet: <strong id="bet-val">100</strong></span>
+                    <input type="range" id="bet-slider" min="10" max="1000" step="10" value="100">
+                </div>
+                <div class="btn-row">
+                    <button class="btn-pass" id="btn-pass-action" onclick="game.playerAction(false)">Pass</button>
+                    <button class="btn-bet" onclick="game.playerAction(true)">Bet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL SETTINGS STATE ---
+        let globalSettings = {
+            startMoney: 1000,
+            penaltyFee: 10
+        };
+
+        // --- Settings UI Logic ---
+        function toggleSettings(show) {
+            const modal = document.getElementById('settings-modal');
+            modal.style.display = show ? 'flex' : 'none';
+        }
+
+        function updateSettingsUI() {
+            const money = document.getElementById('input-money').value;
+            const fee = document.getElementById('input-fee').value;
+            
+            document.getElementById('set-money-val').textContent = money;
+            document.getElementById('set-fee-val').textContent = fee;
+            
+            // Update global state
+            globalSettings.startMoney = parseInt(money);
+            globalSettings.penaltyFee = parseInt(fee);
+        }
+
+        function enterGame() {
+            const landing = document.getElementById('landing-page');
+            const gameWrap = document.getElementById('game-wrapper');
+            
+            // Initialize Game with custom settings
+            game.initSettings(globalSettings.startMoney, globalSettings.penaltyFee);
+            
+            landing.style.transform = 'translateY(-100%)';
+            setTimeout(() => {
+                landing.style.display = 'none';
+                gameWrap.style.display = 'flex';
+                gameWrap.offsetHeight; 
+                gameWrap.style.opacity = '1';
+            }, 500);
+        }
+
+        // --- GAME LOGIC ---
+        const SUITS = ['♠', '♥', '♣', '♦'];
+        const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K']; // Ace Low
+
+        class Card {
+            constructor(val, suit, rank) {
+                this.value = val;
+                this.suit = suit;
+                this.rank = rank;
+                this.color = (suit === '♥' || suit === '♦') ? 'red' : 'black';
+            }
+        }
+
+        class Deck {
+            constructor() { this.cards = []; this.reset(); }
+            reset() {
+                this.cards = [];
+                for(let s of SUITS) {
+                    for(let i=0; i<RANKS.length; i++) {
+                        this.cards.push(new Card(i+1, s, RANKS[i]));
+                    }
+                }
+                this.shuffle();
+            }
+            shuffle() {
+                for(let i=this.cards.length-1; i>0; i--) {
+                    const j = Math.floor(Math.random()*(i+1));
+                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+                }
+            }
+            draw() {
+                if(this.cards.length === 0) this.reset();
+                return this.cards.pop();
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.deck = new Deck();
+                this.pBank = 1000;
+                this.cBank = 1000;
+                this.penalty = 10;
+                this.turn = 'player';
+                this.card1 = null; this.card2 = null;
+                this.currentSpread = 0;
+                
+                // UI
+                this.uiMsg = document.getElementById('msg-main');
+                this.uiSub = document.getElementById('msg-sub');
+                this.uiPBank = document.getElementById('p-bank');
+                this.uiCBank = document.getElementById('c-bank');
+                this.panelDeal = document.getElementById('panel-deal');
+                this.panelBet = document.getElementById('panel-bet');
+                this.slider = document.getElementById('bet-slider');
+                this.betDisplay = document.getElementById('bet-val');
+                this.btnPass = document.getElementById('btn-pass-action');
+                this.turnInd = document.getElementById('turn-indicator');
+                
+                this.slider.addEventListener('input', (e) => {
+                    this.betDisplay.textContent = e.target.value;
+                });
+            }
+
+            initSettings(money, fee) {
+                this.pBank = money;
+                this.cBank = money;
+                this.penalty = fee;
+                this.updateBanks();
+                // Update Button Text
+                this.btnPass.textContent = `Pass (-${this.penalty})`;
+            }
+
+            startRound() {
+                if(this.pBank <= 0 || this.cBank <= 0) {
+                    this.resetGame();
+                    return;
+                }
+                this.panelDeal.style.display = 'none';
+                this.uiMsg.textContent = "Shuffling...";
+                this.uiSub.textContent = "";
+                document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
+                
+                const deckEl = document.getElementById('deck-anchor');
+                deckEl.classList.add('shuffle-anim');
+                
+                setTimeout(() => {
+                    deckEl.classList.remove('shuffle-anim');
+                    this.startPlayerTurn();
+                }, 600);
+            }
+
+            showDeductionAnim(targetBoxId, amount) {
+                const box = document.getElementById(targetBoxId);
+                const floatEl = document.createElement('div');
+                floatEl.className = 'float-deduction';
+                floatEl.textContent = `-${amount}`;
+                box.appendChild(floatEl);
+                setTimeout(() => { floatEl.remove(); }, 1500);
+            }
+
+            applyPenalty(who, reason) {
+                if (who === 'player') {
+                    this.pBank -= this.penalty;
+                    this.uiPBank.innerText = this.pBank;
+                    this.showDeductionAnim('p-score-box', this.penalty);
+                } else {
+                    this.cBank -= this.penalty;
+                    this.uiCBank.innerText = this.cBank;
+                    this.showDeductionAnim('c-score-box', this.penalty);
+                }
+                this.uiMsg.textContent = `${reason} (-${this.penalty})`;
+                this.uiMsg.style.color = "var(--danger)";
+                setTimeout(() => { this.uiMsg.style.color = "white"; }, 1500);
+            }
+
+            async startPlayerTurn() {
+                this.turn = 'player';
+                this.setTurnLabel("Your Turn");
+                await this.dealSequence();
+
+                const status = this.getHandStatus();
+                if(status === 'pair' || status === 'consecutive') {
+                    this.applyPenalty('player', status === 'pair' ? 'Pair!' : 'Consecutive!');
+                    setTimeout(() => this.startCpuTurn(), 1500);
+                    return;
+                }
+
+                this.slider.max = this.pBank;
+                this.slider.value = Math.min(100, this.pBank);
+                this.betDisplay.textContent = this.slider.value;
+                
+                this.uiMsg.textContent = `Spread: ${this.currentSpread}`;
+                this.uiSub.textContent = `Place bet or Pass (-${this.penalty})`;
+                this.panelBet.style.display = 'block';
+            }
+
+            playerAction(isBetting) {
+                this.panelBet.style.display = 'none';
+                if(!isBetting) {
+                    this.applyPenalty('player', 'Passed');
+                    setTimeout(() => this.startCpuTurn(), 1200);
+                } else {
+                    const amount = parseInt(this.slider.value);
+                    this.resolveBet(amount, 'player');
+                }
+            }
+
+            async startCpuTurn() {
+                document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
+                this.turn = 'cpu';
+                this.setTurnLabel("CPU Turn");
+                await this.dealSequence();
+
+                const status = this.getHandStatus();
+                if(status === 'pair' || status === 'consecutive') {
+                    this.applyPenalty('cpu', status === 'pair' ? 'Pair!' : 'Consecutive!');
+                    setTimeout(() => this.endRound(), 1500);
+                    return;
+                }
+                this.uiMsg.textContent = "CPU Thinking...";
+                setTimeout(() => { this.cpuDecision(); }, 1000);
+            }
+
+            cpuDecision() {
+                let willBet = false;
+                let betAmount = 0;
+                
+                if (this.currentSpread >= 6) {
+                    willBet = true;
+                    if(this.currentSpread >= 9) betAmount = Math.floor(this.cBank * 0.5);
+                    else betAmount = Math.floor(this.cBank * 0.1);
+                    
+                    if(betAmount < this.penalty) betAmount = this.penalty; 
+                    if(betAmount > this.cBank) betAmount = this.cBank;
+                }
+
+                if(willBet) {
+                    this.resolveBet(betAmount, 'cpu');
+                } else {
+                    this.applyPenalty('cpu', 'CPU Passed');
+                    setTimeout(() => this.endRound(), 1200);
+                }
+            }
+
+            async dealSequence() {
+                this.card1 = this.deck.draw();
+                this.card2 = this.deck.draw();
+                await this.animateCardFly('slot-1', this.card1);
+                await this.animateCardFly('slot-2', this.card2);
+                const diff = Math.abs(this.card1.value - this.card2.value);
+                this.currentSpread = (diff > 1) ? diff - 1 : 0;
+            }
+
+            getHandStatus() {
+                const diff = Math.abs(this.card1.value - this.card2.value);
+                if(diff === 0) return 'pair';
+                if(diff === 1) return 'consecutive';
+                return 'valid';
+            }
+
+            async resolveBet(amount, who) {
+                if(who === 'player') { this.pBank -= amount; this.uiPBank.innerText = this.pBank; }
+                else { this.cBank -= amount; this.uiCBank.innerText = this.cBank; }
+                
+                this.uiMsg.textContent = `${who === 'player' ? 'You' : 'CPU'} bets $${amount}`;
+                const resultCard = this.deck.draw();
+                await new Promise(r => setTimeout(r, 500));
+                await this.animateCardFly('slot-result', resultCard);
+
+                const low = Math.min(this.card1.value, this.card2.value);
+                const high = Math.max(this.card1.value, this.card2.value);
+                const val = resultCard.value;
+                let win = (val > low && val < high);
+                let penalty = (val === low || val === high);
+
+                if(win) {
+                    this.uiMsg.textContent = "WINNER!";
+                    this.uiMsg.style.color = "var(--success)";
+                    const winnings = amount * 2;
+                    if(who === 'player') this.pBank += winnings; else this.cBank += winnings;
+                } else {
+                    this.uiMsg.textContent = penalty ? "HIT THE POST! (Loss)" : "MISSED! (Loss)";
+                    this.uiMsg.style.color = "var(--danger)";
+                }
+                this.updateBanks();
+                setTimeout(() => {
+                    this.uiMsg.style.color = "white";
+                    if(who === 'player') this.startCpuTurn(); else this.endRound();
+                }, 2000);
+            }
+
+            endRound() {
+                this.turnInd.style.opacity = '0';
+                this.panelDeal.style.display = 'block';
+                this.uiMsg.textContent = "Round Over";
+                this.uiSub.textContent = "Press Deal for next round";
+                if(this.pBank <= 0) this.uiMsg.textContent = "GAME OVER (You Broke)";
+                if(this.cBank <= 0) this.uiMsg.textContent = "YOU WON! (CPU Broke)";
+            }
+
+            resetGame() {
+                // If game resets, it keeps current settings? 
+                // Let's reset to the values chosen in settings
+                this.pBank = globalSettings.startMoney;
+                this.cBank = globalSettings.startMoney;
+                this.updateBanks();
+                this.startRound();
+            }
+            updateBanks() { this.uiPBank.innerText = this.pBank; this.uiCBank.innerText = this.cBank; }
+            setTurnLabel(text) {
+                this.turnInd.textContent = text;
+                this.turnInd.style.opacity = '1';
+                this.turnInd.style.color = this.turn === 'player' ? 'var(--gold)' : '#3498db';
+            }
+            animateCardFly(targetId, cardData) {
+                return new Promise(resolve => {
+                    const deckRect = document.getElementById('deck-anchor').getBoundingClientRect();
+                    const targetEl = document.getElementById(targetId);
+                    const targetRect = targetEl.getBoundingClientRect();
+                    const flyer = document.createElement('div');
+                    flyer.className = 'flying-card';
+                    flyer.style.left = deckRect.left + 'px';
+                    flyer.style.top = deckRect.top + 'px';
+                    document.body.appendChild(flyer);
+                    flyer.getBoundingClientRect();
+                    flyer.style.left = targetRect.left + 'px';
+                    flyer.style.top = targetRect.top + 'px';
+                    flyer.style.width = targetRect.width + 'px';
+                    flyer.style.height = targetRect.height + 'px';
+                    flyer.style.transform = 'rotate(360deg)';
+                    setTimeout(() => {
+                        flyer.remove();
+                        targetEl.innerHTML = `<div class="card ${cardData.color}"><div class="card-corner top">${cardData.rank}<span>${cardData.suit}</span></div><div class="card-center">${cardData.suit}</div><div class="card-corner bottom">${cardData.rank}<span>${cardData.suit}</span></div></div>`;
+                        resolve();
+                    }, 500);
+                });
+            }
+        }
+        const game = new Game();
+    </script>
+</body>
+</html>

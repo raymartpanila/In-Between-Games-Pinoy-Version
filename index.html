@@ -24,7 +24,6 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             height: 100vh;
-            /* Fix for mobile browser height issues */
             height: 100dvh; 
             overflow: hidden;
             color: white;
@@ -83,6 +82,14 @@
         .setting-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
         .setting-val { color: var(--success); font-weight: bold; }
         
+        /* Checkbox for Sound */
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
         input[type=range] { width: 100%; height: 6px; background: #555; border-radius: 3px; outline: none; -webkit-appearance: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; cursor: pointer; }
 
@@ -100,7 +107,6 @@
         .score-box small { display: block; font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
         .score-box span { font-size: 1.2rem; color: var(--gold); font-weight: bold; }
 
-        /* FLOATING DEDUCTION ANIMATION */
         .float-deduction {
             position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
             color: var(--danger); font-weight: bold; font-size: 1.5rem;
@@ -132,11 +138,10 @@
         .main-msg { font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px black; }
         .sub-msg { font-size: 0.9rem; opacity: 0.8; }
 
-        /* --- UPDATED CONTROLS STYLING --- */
         .controls { 
             background: var(--felt-dark); 
-            padding: 20px 20px 40px 20px; /* More bottom padding */
-            padding-bottom: calc(40px + env(safe-area-inset-bottom)); /* Dynamic Mobile Padding */
+            padding: 20px 20px 40px 20px; 
+            padding-bottom: calc(40px + env(safe-area-inset-bottom));
             border-top: 1px solid rgba(255,255,255,0.1); 
             width: 100%;
         }
@@ -144,10 +149,9 @@
         .bet-ui { display: none; width: 100%; animation: slideUp 0.3s ease; }
         .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .btn-row { display: flex; gap: 10px; }
-        
         button { border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
         button:active { transform: translateY(4px); box-shadow: none; }
-        .btn-deal { width: 100%; background: var(--gold); color: #333; margin-bottom: 10px; /* Extra lift for the button */ }
+        .btn-deal { width: 100%; background: var(--gold); color: #333; margin-bottom: 10px; }
         .btn-bet { flex: 1; background: var(--success); color: white; }
         .btn-pass { flex: 1; background: var(--danger); color: white; }
 
@@ -177,6 +181,16 @@
         <div class="settings-box">
             <div class="settings-title">Game Settings</div>
             
+            <div class="setting-row">
+                <div class="setting-label">
+                    <span>Sound Effects</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="input-sound" checked onchange="updateSettingsUI()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
             <div class="setting-row">
                 <div class="setting-label">
                     <span>Starting Money</span>
@@ -245,13 +259,95 @@
     </div>
 
     <script>
+        // --- SOUND MANAGER (Web Audio API) ---
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if(this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playNoise(duration) {
+                if (!this.enabled || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                noise.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+
+            shuffle() {
+                if (!this.enabled) return;
+                // Burst of noise to simulate ruffle
+                for(let i=0; i<5; i++) {
+                    setTimeout(() => this.playNoise(0.1), i*60);
+                }
+            }
+
+            deal() {
+                // Quick swish (filtered noise simulated by low volume noise)
+                this.playNoise(0.15);
+            }
+
+            pass() {
+                // High click
+                this.playTone(800, 'sine', 0.1, 0.05);
+            }
+
+            win() {
+                // Ding Dong (Major 3rd)
+                this.playTone(523.25, 'triangle', 0.3, 0.1); // C5
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.6, 0.1), 150); // E5
+            }
+
+            lose() {
+                // Bwah Bwah
+                this.playTone(150, 'sawtooth', 0.3, 0.1);
+                setTimeout(() => this.playTone(120, 'sawtooth', 0.5, 0.1), 200);
+            }
+        }
+
+        const sfx = new SoundManager();
+
         // --- GLOBAL SETTINGS STATE ---
         let globalSettings = {
             startMoney: 1000,
-            penaltyFee: 10
+            penaltyFee: 10,
+            soundOn: true
         };
 
-        // --- Settings UI Logic ---
         function toggleSettings(show) {
             const modal = document.getElementById('settings-modal');
             modal.style.display = show ? 'flex' : 'none';
@@ -260,20 +356,23 @@
         function updateSettingsUI() {
             const money = document.getElementById('input-money').value;
             const fee = document.getElementById('input-fee').value;
+            const sound = document.getElementById('input-sound').checked;
             
             document.getElementById('set-money-val').textContent = money;
             document.getElementById('set-fee-val').textContent = fee;
             
-            // Update global state
             globalSettings.startMoney = parseInt(money);
             globalSettings.penaltyFee = parseInt(fee);
+            globalSettings.soundOn = sound;
+            
+            sfx.enabled = sound;
         }
 
         function enterGame() {
+            sfx.init(); // Initialize Audio Context on user click
             const landing = document.getElementById('landing-page');
             const gameWrap = document.getElementById('game-wrapper');
             
-            // Initialize Game with custom settings
             game.initSettings(globalSettings.startMoney, globalSettings.penaltyFee);
             
             landing.style.transform = 'translateY(-100%)';
@@ -285,9 +384,8 @@
             }, 500);
         }
 
-        // --- GAME LOGIC ---
         const SUITS = ['♠', '♥', '♣', '♦'];
-        const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K']; // Ace Low
+        const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
 
         class Card {
             constructor(val, suit, rank) {
@@ -331,7 +429,6 @@
                 this.card1 = null; this.card2 = null;
                 this.currentSpread = 0;
                 
-                // UI
                 this.uiMsg = document.getElementById('msg-main');
                 this.uiSub = document.getElementById('msg-sub');
                 this.uiPBank = document.getElementById('p-bank');
@@ -353,7 +450,6 @@
                 this.cBank = money;
                 this.penalty = fee;
                 this.updateBanks();
-                // Update Button Text
                 this.btnPass.textContent = `Pass (-${this.penalty})`;
             }
 
@@ -367,6 +463,7 @@
                 this.uiSub.textContent = "";
                 document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
                 
+                sfx.shuffle(); // SFX
                 const deckEl = document.getElementById('deck-anchor');
                 deckEl.classList.add('shuffle-anim');
                 
@@ -397,6 +494,7 @@
                 }
                 this.uiMsg.textContent = `${reason} (-${this.penalty})`;
                 this.uiMsg.style.color = "var(--danger)";
+                sfx.lose(); // SFX for deduction
                 setTimeout(() => { this.uiMsg.style.color = "white"; }, 1500);
             }
 
@@ -424,6 +522,7 @@
             playerAction(isBetting) {
                 this.panelBet.style.display = 'none';
                 if(!isBetting) {
+                    sfx.pass(); // SFX
                     this.applyPenalty('player', 'Passed');
                     setTimeout(() => this.startCpuTurn(), 1200);
                 } else {
@@ -456,7 +555,6 @@
                     willBet = true;
                     if(this.currentSpread >= 9) betAmount = Math.floor(this.cBank * 0.5);
                     else betAmount = Math.floor(this.cBank * 0.1);
-                    
                     if(betAmount < this.penalty) betAmount = this.penalty; 
                     if(betAmount > this.cBank) betAmount = this.cBank;
                 }
@@ -464,6 +562,7 @@
                 if(willBet) {
                     this.resolveBet(betAmount, 'cpu');
                 } else {
+                    sfx.pass(); // SFX
                     this.applyPenalty('cpu', 'CPU Passed');
                     setTimeout(() => this.endRound(), 1200);
                 }
@@ -501,11 +600,13 @@
                 let penalty = (val === low || val === high);
 
                 if(win) {
+                    sfx.win(); // SFX
                     this.uiMsg.textContent = "WINNER!";
                     this.uiMsg.style.color = "var(--success)";
                     const winnings = amount * 2;
                     if(who === 'player') this.pBank += winnings; else this.cBank += winnings;
                 } else {
+                    sfx.lose(); // SFX
                     this.uiMsg.textContent = penalty ? "HIT THE POST! (Loss)" : "MISSED! (Loss)";
                     this.uiMsg.style.color = "var(--danger)";
                 }
@@ -526,8 +627,6 @@
             }
 
             resetGame() {
-                // If game resets, it keeps current settings? 
-                // Let's reset to the values chosen in settings
                 this.pBank = globalSettings.startMoney;
                 this.cBank = globalSettings.startMoney;
                 this.updateBanks();
@@ -541,6 +640,7 @@
             }
             animateCardFly(targetId, cardData) {
                 return new Promise(resolve => {
+                    sfx.deal(); // SFX
                     const deckRect = document.getElementById('deck-anchor').getBoundingClientRect();
                     const targetEl = document.getElementById(targetId);
                     const targetRect = targetEl.getBoundingClientRect();

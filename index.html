@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>In-Between: Pinoy Version</title>
+    <title>In-Between: Pot Limit</title>
     <style>
         :root {
             --felt-green: #27ae60;
@@ -56,7 +56,6 @@
             color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;
             z-index: 2; font-size: 0.9rem; transition: background 0.2s;
         }
-        .btn-settings:hover { background: rgba(255,255,255,0.3); }
 
         .bg-suit { position: absolute; color: rgba(255,255,255,0.05); font-size: 4rem; animation: floatUp 10s linear infinite; z-index: 1; }
 
@@ -77,29 +76,24 @@
             border: 2px solid var(--gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         .settings-title { color: var(--gold); font-size: 1.5rem; text-align: center; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; }
-        
         .setting-row { margin-bottom: 20px; }
         .setting-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
         .setting-val { color: var(--success); font-weight: bold; }
         
-        /* Checkbox for Sound */
         .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--success); }
         input:checked + .slider:before { transform: translateX(24px); }
-
         input[type=range] { width: 100%; height: 6px; background: #555; border-radius: 3px; outline: none; -webkit-appearance: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--gold); border-radius: 50%; cursor: pointer; }
 
-        .btn-close-settings {
-            width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
+        .btn-close-settings { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* --- GAME WRAPPER --- */
+        /* --- GAME UI --- */
         #game-wrapper { display: none; height: 100%; width: 100%; flex-direction: column; opacity: 0; transition: opacity 0.5s; }
 
         .scoreboard { display: flex; justify-content: space-between; padding: 10px 20px; background: rgba(0,0,0,0.4); z-index: 20; position: relative; }
@@ -107,17 +101,29 @@
         .score-box small { display: block; font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
         .score-box span { font-size: 1.2rem; color: var(--gold); font-weight: bold; }
 
-        .float-deduction {
-            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-            color: var(--danger); font-weight: bold; font-size: 1.5rem;
-            text-shadow: 1px 1px 0px white; pointer-events: none;
-            animation: floatDownFade 1.5s ease-out forwards;
+        /* POT UI */
+        .pot-container {
+            position: absolute;
+            top: 45%; left: 50%;
+            transform: translate(-50%, -100%);
+            text-align: center;
+            z-index: 10;
         }
-        @keyframes floatDownFade { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 30px); } }
+        .pot-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+        .pot-amount { 
+            font-size: 2rem; font-weight: 900; color: var(--gold); 
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 2px 2px 0px black;
+            background: rgba(0,0,0,0.5); padding: 5px 25px; border-radius: 30px;
+            border: 2px solid var(--gold);
+            animation: pulsePot 2s infinite;
+        }
+
+        @keyframes pulsePot { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         .game-area { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        .deck-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 110px; z-index: 5; }
+        /* DECK */
+        .deck-container { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 110px; z-index: 5; }
         .deck-card { width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; position: absolute; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .deck-card:nth-child(1) { transform: translate(0, 0); }
         .deck-card:nth-child(2) { transform: translate(-2px, -2px); }
@@ -132,7 +138,25 @@
         .card-center { font-size: 2rem; align-self: center; margin-top: auto; margin-bottom: auto;}
         .card-corner.bottom { transform: rotate(180deg); }
 
+        /* --- ANIMATIONS --- */
         .flying-card { position: absolute; width: 80px; height: 110px; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; z-index: 100; transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+        .flying-chip {
+            position: absolute; width: 30px; height: 30px;
+            background: radial-gradient(circle at 30% 30%, #e74c3c, #c0392b);
+            border: 4px dashed white; border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            z-index: 100;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .float-deduction {
+            position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+            color: var(--danger); font-weight: bold; font-size: 1.5rem;
+            text-shadow: 1px 1px 0px white; pointer-events: none;
+            animation: floatDownFade 1.5s ease-out forwards;
+        }
+        @keyframes floatDownFade { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 30px); } }
 
         .info-panel { min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; margin-top: auto; margin-bottom: 20px; }
         .main-msg { font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px black; }
@@ -148,12 +172,13 @@
         
         .bet-ui { display: none; width: 100%; animation: slideUp 0.3s ease; }
         .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .btn-row { display: flex; gap: 10px; }
+        .btn-row { display: flex; gap: 10px; margin-top: 10px; }
         button { border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
         button:active { transform: translateY(4px); box-shadow: none; }
         .btn-deal { width: 100%; background: var(--gold); color: #333; margin-bottom: 10px; }
-        .btn-bet { flex: 1; background: var(--success); color: white; }
-        .btn-pass { flex: 1; background: var(--danger); color: white; }
+        
+        .btn-bet { flex: 1; background: var(--success); color: white; border: 2px solid white; }
+        .btn-pass { flex: 1; background: var(--danger); color: white; border: 2px solid white; }
 
         .turn-overlay { position: absolute; top: 100px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; transition: opacity 0.3s; opacity: 0; }
         .shuffle-anim { animation: shake 0.5s ease-in-out; }
@@ -170,7 +195,7 @@
 
         <div class="title-container">
             <h1 class="title-line-1">In-Between</h1>
-            <div class="title-line-2">Pinoy Version</div>
+            <div class="title-line-2">Pot Limit Version</div>
         </div>
         
         <button class="btn-start" onclick="enterGame()">Start Game</button>
@@ -201,10 +226,18 @@
 
             <div class="setting-row">
                 <div class="setting-label">
-                    <span>Pass Penalty (Taya)</span>
-                    <span id="set-fee-val" class="setting-val">10</span>
+                    <span>Initial Ante (Taya)</span>
+                    <span id="set-fee-val" class="setting-val">50</span>
                 </div>
-                <input type="range" id="input-fee" min="5" max="500" step="5" value="10" oninput="updateSettingsUI()">
+                <input type="range" id="input-fee" min="10" max="200" step="10" value="50" oninput="updateSettingsUI()">
+            </div>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <span>Pass Penalty</span>
+                    <span id="set-pass-val" class="setting-val">10</span>
+                </div>
+                <input type="range" id="input-pass" min="5" max="100" step="5" value="10" oninput="updateSettingsUI()">
             </div>
 
             <button class="btn-close-settings" onclick="toggleSettings(false)">Save & Close</button>
@@ -225,11 +258,18 @@
 
         <div class="game-area">
             <div id="turn-indicator" class="turn-overlay">CPU Turn</div>
+            
+            <div class="pot-container" id="pot-display-area">
+                <div class="pot-label">THE POT</div>
+                <div class="pot-amount" id="pot-val">0</div>
+            </div>
+
             <div class="deck-container" id="deck-anchor">
                 <div class="deck-card"></div>
                 <div class="deck-card"></div>
                 <div class="deck-card"></div>
             </div>
+            
             <div class="hand-area">
                 <div class="card-slot" id="slot-1"></div>
                 <div class="card-slot" id="slot-result"></div>
@@ -247,141 +287,76 @@
             </div>
             <div id="panel-bet" class="bet-ui">
                 <div class="slider-row">
-                    <span>Bet: <strong id="bet-val">100</strong></span>
-                    <input type="range" id="bet-slider" min="10" max="1000" step="10" value="100">
+                    <span>Bet: <strong id="bet-val">5</strong></span>
+                    <input type="range" id="bet-slider" min="5" max="100" step="5" value="5">
                 </div>
                 <div class="btn-row">
-                    <button class="btn-pass" id="btn-pass-action" onclick="game.playerAction(false)">Pass</button>
-                    <button class="btn-bet" onclick="game.playerAction(true)">Bet</button>
+                    <button class="btn-pass" id="btn-pass-action" onclick="game.playerAction(false)">PASS (-10)</button>
+                    <button class="btn-bet" onclick="game.playerAction(true)">BET</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- SOUND MANAGER (Web Audio API) ---
+        // --- SOUND MANAGER ---
         class SoundManager {
-            constructor() {
-                this.enabled = true;
-                this.ctx = null;
-            }
-
+            constructor() { this.enabled = true; this.ctx = null; }
             init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    this.ctx = new AudioContext();
-                }
-                if(this.ctx.state === 'suspended') {
-                    this.ctx.resume();
-                }
+                if (!this.ctx) { const AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); }
+                if(this.ctx.state === 'suspended') this.ctx.resume();
             }
-
             playTone(freq, type, duration, vol = 0.1) {
                 if (!this.enabled || !this.ctx) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
             }
-
             playNoise(duration) {
                 if (!this.enabled || !this.ctx) return;
-                const bufferSize = this.ctx.sampleRate * duration;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = Math.random() * 2 - 1;
-                }
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                noise.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start();
+                const bufferSize = this.ctx.sampleRate * duration; const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource(); noise.buffer = buffer; const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                noise.connect(gain); gain.connect(this.ctx.destination); noise.start();
             }
-
-            shuffle() {
-                if (!this.enabled) return;
-                // Burst of noise to simulate ruffle
-                for(let i=0; i<5; i++) {
-                    setTimeout(() => this.playNoise(0.1), i*60);
-                }
-            }
-
-            deal() {
-                // Quick swish (filtered noise simulated by low volume noise)
-                this.playNoise(0.15);
-            }
-
-            pass() {
-                // High click
-                this.playTone(800, 'sine', 0.1, 0.05);
-            }
-
-            win() {
-                // Ding Dong (Major 3rd)
-                this.playTone(523.25, 'triangle', 0.3, 0.1); // C5
-                setTimeout(() => this.playTone(659.25, 'triangle', 0.6, 0.1), 150); // E5
-            }
-
-            lose() {
-                // Bwah Bwah
-                this.playTone(150, 'sawtooth', 0.3, 0.1);
-                setTimeout(() => this.playTone(120, 'sawtooth', 0.5, 0.1), 200);
-            }
+            shuffle() { if(this.enabled) for(let i=0; i<5; i++) setTimeout(() => this.playNoise(0.1), i*60); }
+            deal() { this.playNoise(0.15); }
+            chip() { this.playTone(1200, 'sine', 0.05, 0.05); } 
+            pass() { this.playTone(600, 'sawtooth', 0.1, 0.05); }
+            win() { this.playTone(523.25, 'triangle', 0.1, 0.1); setTimeout(() => this.playTone(659.25, 'triangle', 0.1, 0.1), 100); setTimeout(() => this.playTone(783.99, 'triangle', 0.4, 0.1), 200); }
+            lose() { this.playTone(150, 'sawtooth', 0.3, 0.1); setTimeout(() => this.playTone(100, 'sawtooth', 0.5, 0.1), 200); }
         }
-
         const sfx = new SoundManager();
 
-        // --- GLOBAL SETTINGS STATE ---
-        let globalSettings = {
-            startMoney: 1000,
-            penaltyFee: 10,
-            soundOn: true
-        };
-
-        function toggleSettings(show) {
-            const modal = document.getElementById('settings-modal');
-            modal.style.display = show ? 'flex' : 'none';
-        }
-
+        // --- GLOBAL SETTINGS ---
+        let globalSettings = { startMoney: 1000, anteFee: 50, passFee: 10, soundOn: true };
+        function toggleSettings(show) { document.getElementById('settings-modal').style.display = show ? 'flex' : 'none'; }
         function updateSettingsUI() {
             const money = document.getElementById('input-money').value;
             const fee = document.getElementById('input-fee').value;
+            const pass = document.getElementById('input-pass').value;
             const sound = document.getElementById('input-sound').checked;
             
             document.getElementById('set-money-val').textContent = money;
             document.getElementById('set-fee-val').textContent = fee;
+            document.getElementById('set-pass-val').textContent = pass;
             
             globalSettings.startMoney = parseInt(money);
-            globalSettings.penaltyFee = parseInt(fee);
+            globalSettings.anteFee = parseInt(fee);
+            globalSettings.passFee = parseInt(pass);
             globalSettings.soundOn = sound;
-            
             sfx.enabled = sound;
         }
-
         function enterGame() {
-            sfx.init(); // Initialize Audio Context on user click
+            sfx.init();
             const landing = document.getElementById('landing-page');
             const gameWrap = document.getElementById('game-wrapper');
-            
-            game.initSettings(globalSettings.startMoney, globalSettings.penaltyFee);
-            
+            game.initSettings(globalSettings.startMoney, globalSettings.anteFee, globalSettings.passFee);
             landing.style.transform = 'translateY(-100%)';
-            setTimeout(() => {
-                landing.style.display = 'none';
-                gameWrap.style.display = 'flex';
-                gameWrap.offsetHeight; 
-                gameWrap.style.opacity = '1';
-            }, 500);
+            setTimeout(() => { landing.style.display = 'none'; gameWrap.style.display = 'flex'; gameWrap.offsetHeight; gameWrap.style.opacity = '1'; }, 500);
         }
 
         const SUITS = ['♠', '♥', '♣', '♦'];
@@ -389,9 +364,7 @@
 
         class Card {
             constructor(val, suit, rank) {
-                this.value = val;
-                this.suit = suit;
-                this.rank = rank;
+                this.value = val; this.suit = suit; this.rank = rank;
                 this.color = (suit === '♥' || suit === '♦') ? 'red' : 'black';
             }
         }
@@ -399,32 +372,18 @@
         class Deck {
             constructor() { this.cards = []; this.reset(); }
             reset() {
-                this.cards = [];
-                for(let s of SUITS) {
-                    for(let i=0; i<RANKS.length; i++) {
-                        this.cards.push(new Card(i+1, s, RANKS[i]));
-                    }
-                }
+                this.cards = []; for(let s of SUITS) for(let i=0; i<RANKS.length; i++) this.cards.push(new Card(i+1, s, RANKS[i]));
                 this.shuffle();
             }
-            shuffle() {
-                for(let i=this.cards.length-1; i>0; i--) {
-                    const j = Math.floor(Math.random()*(i+1));
-                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
-                }
-            }
-            draw() {
-                if(this.cards.length === 0) this.reset();
-                return this.cards.pop();
-            }
+            shuffle() { for(let i=this.cards.length-1; i>0; i--) { const j = Math.floor(Math.random()*(i+1)); [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]]; } }
+            draw() { if(this.cards.length === 0) this.reset(); return this.cards.pop(); }
         }
 
         class Game {
             constructor() {
                 this.deck = new Deck();
-                this.pBank = 1000;
-                this.cBank = 1000;
-                this.penalty = 10;
+                this.pBank = 1000; this.cBank = 1000;
+                this.ante = 50; this.pot = 0; this.passPenalty = 10;
                 this.turn = 'player';
                 this.card1 = null; this.card2 = null;
                 this.currentSpread = 0;
@@ -433,69 +392,58 @@
                 this.uiSub = document.getElementById('msg-sub');
                 this.uiPBank = document.getElementById('p-bank');
                 this.uiCBank = document.getElementById('c-bank');
+                this.uiPot = document.getElementById('pot-val');
                 this.panelDeal = document.getElementById('panel-deal');
                 this.panelBet = document.getElementById('panel-bet');
+                this.btnPass = document.getElementById('btn-pass-action');
                 this.slider = document.getElementById('bet-slider');
                 this.betDisplay = document.getElementById('bet-val');
-                this.btnPass = document.getElementById('btn-pass-action');
                 this.turnInd = document.getElementById('turn-indicator');
                 
-                this.slider.addEventListener('input', (e) => {
-                    this.betDisplay.textContent = e.target.value;
-                });
+                this.slider.addEventListener('input', (e) => { this.betDisplay.textContent = e.target.value; });
             }
 
-            initSettings(money, fee) {
-                this.pBank = money;
-                this.cBank = money;
-                this.penalty = fee;
+            initSettings(money, ante, pass) {
+                this.pBank = money; this.cBank = money; this.ante = ante; this.passPenalty = pass;
                 this.updateBanks();
-                this.btnPass.textContent = `Pass (-${this.penalty})`;
+                this.btnPass.textContent = `PASS (-${this.passPenalty})`;
             }
 
-            startRound() {
-                if(this.pBank <= 0 || this.cBank <= 0) {
-                    this.resetGame();
-                    return;
-                }
-                this.panelDeal.style.display = 'none';
-                this.uiMsg.textContent = "Shuffling...";
-                this.uiSub.textContent = "";
-                document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
+            // --- MAIN LOOP ---
+            async startRound() {
+                if(this.pBank < this.ante && this.pot === 0) { this.uiMsg.textContent = "You Broke!"; return; }
                 
-                sfx.shuffle(); // SFX
+                this.panelDeal.style.display = 'none';
+                
+                // CONDITIONAL ANTE: Only if pot is empty
+                if(this.pot === 0) {
+                    this.uiMsg.textContent = `New Round: Ante ${this.ante}`;
+                    // Player Pays
+                    await this.animateChip('p-score-box', 'pot-display-area');
+                    this.pBank -= this.ante; this.pot += this.ante;
+                    this.updateBanks(); this.updatePot();
+                    // CPU Pays
+                    await this.animateChip('c-score-box', 'pot-display-area');
+                    this.cBank -= this.ante; this.pot += this.ante;
+                    this.updateBanks(); this.updatePot();
+                } else {
+                    this.uiMsg.textContent = "Pot Carries Over!";
+                }
+
+                this.startShuffle();
+            }
+
+            startShuffle() {
+                this.uiMsg.textContent = "Shuffling...";
+                sfx.shuffle();
                 const deckEl = document.getElementById('deck-anchor');
                 deckEl.classList.add('shuffle-anim');
+                document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
                 
                 setTimeout(() => {
                     deckEl.classList.remove('shuffle-anim');
                     this.startPlayerTurn();
                 }, 600);
-            }
-
-            showDeductionAnim(targetBoxId, amount) {
-                const box = document.getElementById(targetBoxId);
-                const floatEl = document.createElement('div');
-                floatEl.className = 'float-deduction';
-                floatEl.textContent = `-${amount}`;
-                box.appendChild(floatEl);
-                setTimeout(() => { floatEl.remove(); }, 1500);
-            }
-
-            applyPenalty(who, reason) {
-                if (who === 'player') {
-                    this.pBank -= this.penalty;
-                    this.uiPBank.innerText = this.pBank;
-                    this.showDeductionAnim('p-score-box', this.penalty);
-                } else {
-                    this.cBank -= this.penalty;
-                    this.uiCBank.innerText = this.cBank;
-                    this.showDeductionAnim('c-score-box', this.penalty);
-                }
-                this.uiMsg.textContent = `${reason} (-${this.penalty})`;
-                this.uiMsg.style.color = "var(--danger)";
-                sfx.lose(); // SFX for deduction
-                setTimeout(() => { this.uiMsg.style.color = "white"; }, 1500);
             }
 
             async startPlayerTurn() {
@@ -505,25 +453,37 @@
 
                 const status = this.getHandStatus();
                 if(status === 'pair' || status === 'consecutive') {
-                    this.applyPenalty('player', status === 'pair' ? 'Pair!' : 'Consecutive!');
-                    setTimeout(() => this.startCpuTurn(), 1500);
+                    this.uiMsg.textContent = status === 'pair' ? 'Pair! (Talo)' : 'Consecutive! (Talo)';
+                    this.uiMsg.style.color = "var(--danger)";
+                    this.handlePenalty('player'); 
+                    setTimeout(() => this.startCpuTurn(), 2000);
                     return;
                 }
 
-                this.slider.max = this.pBank;
-                this.slider.value = Math.min(100, this.pBank);
-                this.betDisplay.textContent = this.slider.value;
+                // --- BET LIMIT LOGIC ---
+                const maxBet = Math.min(this.pBank, this.pot);
+                const minBet = 5;
+
+                this.slider.min = minBet;
+                this.slider.max = maxBet;
+                this.slider.value = minBet;
+                this.betDisplay.textContent = minBet;
                 
+                if(maxBet < minBet) {
+                     this.uiMsg.textContent = "Not enough cash to bet!";
+                }
+
                 this.uiMsg.textContent = `Spread: ${this.currentSpread}`;
-                this.uiSub.textContent = `Place bet or Pass (-${this.penalty})`;
+                this.uiSub.textContent = `Pot: ${this.pot} | Max Bet: ${maxBet}`;
+                this.uiMsg.style.color = "white";
                 this.panelBet.style.display = 'block';
             }
 
             playerAction(isBetting) {
                 this.panelBet.style.display = 'none';
                 if(!isBetting) {
-                    sfx.pass(); // SFX
-                    this.applyPenalty('player', 'Passed');
+                    this.handlePenalty('player');
+                    this.uiMsg.textContent = "Passed.";
                     setTimeout(() => this.startCpuTurn(), 1200);
                 } else {
                     const amount = parseInt(this.slider.value);
@@ -532,40 +492,60 @@
             }
 
             async startCpuTurn() {
+                if(this.pot === 0) return; 
+
                 document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
                 this.turn = 'cpu';
                 this.setTurnLabel("CPU Turn");
+                
                 await this.dealSequence();
 
                 const status = this.getHandStatus();
                 if(status === 'pair' || status === 'consecutive') {
-                    this.applyPenalty('cpu', status === 'pair' ? 'Pair!' : 'Consecutive!');
+                    this.uiMsg.textContent = "CPU: Bad Hand";
+                    this.handlePenalty('cpu');
                     setTimeout(() => this.endRound(), 1500);
                     return;
                 }
-                this.uiMsg.textContent = "CPU Thinking...";
+                
                 setTimeout(() => { this.cpuDecision(); }, 1000);
             }
 
             cpuDecision() {
                 let willBet = false;
                 let betAmount = 0;
+                const maxBet = Math.min(this.cBank, this.pot);
+                const minBet = 5;
                 
-                if (this.currentSpread >= 6) {
+                if (this.currentSpread >= 6 && maxBet >= minBet) {
                     willBet = true;
-                    if(this.currentSpread >= 9) betAmount = Math.floor(this.cBank * 0.5);
-                    else betAmount = Math.floor(this.cBank * 0.1);
-                    if(betAmount < this.penalty) betAmount = this.penalty; 
-                    if(betAmount > this.cBank) betAmount = this.cBank;
+                    if(this.currentSpread >= 9) betAmount = maxBet; 
+                    else if (this.currentSpread >= 7) betAmount = Math.floor(maxBet / 2);
+                    else betAmount = minBet;
+
+                    if(betAmount < minBet) betAmount = minBet;
                 }
 
                 if(willBet) {
                     this.resolveBet(betAmount, 'cpu');
                 } else {
-                    sfx.pass(); // SFX
-                    this.applyPenalty('cpu', 'CPU Passed');
+                    this.handlePenalty('cpu');
+                    this.uiMsg.textContent = "CPU Passed";
                     setTimeout(() => this.endRound(), 1200);
                 }
+            }
+
+            async handlePenalty(who) {
+                sfx.pass();
+                if(who === 'player') {
+                    await this.animateChip('p-score-box', 'pot-display-area');
+                    this.pBank -= this.passPenalty;
+                } else {
+                    await this.animateChip('c-score-box', 'pot-display-area');
+                    this.cBank -= this.passPenalty;
+                }
+                this.pot += this.passPenalty;
+                this.updateBanks(); this.updatePot();
             }
 
             async dealSequence() {
@@ -585,10 +565,17 @@
             }
 
             async resolveBet(amount, who) {
-                if(who === 'player') { this.pBank -= amount; this.uiPBank.innerText = this.pBank; }
-                else { this.cBank -= amount; this.uiCBank.innerText = this.cBank; }
+                if(who === 'player') { 
+                     await this.animateChip('p-score-box', 'pot-display-area');
+                     this.pBank -= amount; 
+                } else { 
+                     await this.animateChip('c-score-box', 'pot-display-area');
+                     this.cBank -= amount; 
+                }
+                this.updateBanks();
                 
-                this.uiMsg.textContent = `${who === 'player' ? 'You' : 'CPU'} bets $${amount}`;
+                this.uiMsg.textContent = `${who === 'player' ? 'You' : 'CPU'} bets ${amount}`;
+                
                 const resultCard = this.deck.draw();
                 await new Promise(r => setTimeout(r, 500));
                 await this.animateCardFly('slot-result', resultCard);
@@ -597,69 +584,86 @@
                 const high = Math.max(this.card1.value, this.card2.value);
                 const val = resultCard.value;
                 let win = (val > low && val < high);
-                let penalty = (val === low || val === high);
 
                 if(win) {
-                    sfx.win(); // SFX
+                    sfx.win();
                     this.uiMsg.textContent = "WINNER!";
                     this.uiMsg.style.color = "var(--success)";
-                    const winnings = amount * 2;
-                    if(who === 'player') this.pBank += winnings; else this.cBank += winnings;
+                    
+                    if(who === 'player') {
+                        await this.animateChip('pot-display-area', 'p-score-box'); // Visual return
+                        this.pBank += (amount * 2);
+                    } else {
+                        await this.animateChip('pot-display-area', 'c-score-box');
+                        this.cBank += (amount * 2);
+                    }
+                    this.pot -= amount;
+
                 } else {
-                    sfx.lose(); // SFX
-                    this.uiMsg.textContent = penalty ? "HIT THE POST! (Loss)" : "MISSED! (Loss)";
+                    sfx.lose();
+                    this.uiMsg.textContent = "LOSE! (Added to Pot)";
                     this.uiMsg.style.color = "var(--danger)";
+                    this.pot += amount;
                 }
-                this.updateBanks();
+                
+                this.updateBanks(); this.updatePot();
+
                 setTimeout(() => {
                     this.uiMsg.style.color = "white";
-                    if(who === 'player') this.startCpuTurn(); else this.endRound();
+                    if(who === 'player' && this.pot > 0) this.startCpuTurn(); 
+                    else this.endRound();
                 }, 2000);
             }
 
             endRound() {
                 this.turnInd.style.opacity = '0';
                 this.panelDeal.style.display = 'block';
-                this.uiMsg.textContent = "Round Over";
-                this.uiSub.textContent = "Press Deal for next round";
-                if(this.pBank <= 0) this.uiMsg.textContent = "GAME OVER (You Broke)";
-                if(this.cBank <= 0) this.uiMsg.textContent = "YOU WON! (CPU Broke)";
+                if(this.pot === 0) this.uiMsg.textContent = "Pot Cleared. Round Over.";
+                else this.uiMsg.textContent = "Pot Carries Over!";
             }
 
-            resetGame() {
-                this.pBank = globalSettings.startMoney;
-                this.cBank = globalSettings.startMoney;
-                this.updateBanks();
-                this.startRound();
-            }
             updateBanks() { this.uiPBank.innerText = this.pBank; this.uiCBank.innerText = this.cBank; }
-            setTurnLabel(text) {
-                this.turnInd.textContent = text;
-                this.turnInd.style.opacity = '1';
-                this.turnInd.style.color = this.turn === 'player' ? 'var(--gold)' : '#3498db';
-            }
+            updatePot() { this.uiPot.innerText = this.pot; }
+            setTurnLabel(text) { this.turnInd.textContent = text; this.turnInd.style.opacity = '1'; this.turnInd.style.color = this.turn === 'player' ? 'var(--gold)' : '#3498db'; }
+            
             animateCardFly(targetId, cardData) {
                 return new Promise(resolve => {
-                    sfx.deal(); // SFX
+                    sfx.deal();
                     const deckRect = document.getElementById('deck-anchor').getBoundingClientRect();
                     const targetEl = document.getElementById(targetId);
                     const targetRect = targetEl.getBoundingClientRect();
                     const flyer = document.createElement('div');
                     flyer.className = 'flying-card';
-                    flyer.style.left = deckRect.left + 'px';
-                    flyer.style.top = deckRect.top + 'px';
+                    flyer.style.left = deckRect.left + 'px'; flyer.style.top = deckRect.top + 'px';
                     document.body.appendChild(flyer);
                     flyer.getBoundingClientRect();
-                    flyer.style.left = targetRect.left + 'px';
-                    flyer.style.top = targetRect.top + 'px';
-                    flyer.style.width = targetRect.width + 'px';
-                    flyer.style.height = targetRect.height + 'px';
+                    flyer.style.left = targetRect.left + 'px'; flyer.style.top = targetRect.top + 'px';
+                    flyer.style.width = targetRect.width + 'px'; flyer.style.height = targetRect.height + 'px';
                     flyer.style.transform = 'rotate(360deg)';
                     setTimeout(() => {
                         flyer.remove();
                         targetEl.innerHTML = `<div class="card ${cardData.color}"><div class="card-corner top">${cardData.rank}<span>${cardData.suit}</span></div><div class="card-center">${cardData.suit}</div><div class="card-corner bottom">${cardData.rank}<span>${cardData.suit}</span></div></div>`;
                         resolve();
                     }, 500);
+                });
+            }
+
+            animateChip(fromId, toId) {
+                return new Promise(resolve => {
+                    sfx.chip();
+                    const fromEl = document.getElementById(fromId);
+                    const toEl = document.getElementById(toId);
+                    const fromRect = fromEl.getBoundingClientRect();
+                    const toRect = toEl.getBoundingClientRect();
+                    const chip = document.createElement('div');
+                    chip.className = 'flying-chip';
+                    chip.style.left = (fromRect.left + fromRect.width/2 - 15) + 'px';
+                    chip.style.top = (fromRect.top + fromRect.height/2 - 15) + 'px';
+                    document.body.appendChild(chip);
+                    chip.getBoundingClientRect();
+                    chip.style.left = (toRect.left + toRect.width/2 - 15) + 'px';
+                    chip.style.top = (toRect.top + toRect.height/2 - 15) + 'px';
+                    setTimeout(() => { chip.remove(); resolve(); }, 600);
                 });
             }
         }

@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>In-Between: Multiplayer</title>
+    <style>
+        :root {
+            --felt-green: #27ae60;
+            --felt-dark: #145a32;
+            --card-white: #f5f5f5;
+            --gold: #f1c40f;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --text-dark: #2c3e50;
+            --modal-bg: rgba(0, 0, 0, 0.85);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--felt-green);
+            background-image: radial-gradient(circle, var(--felt-green) 0%, var(--felt-dark) 90%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            height: 100vh;
+            height: 100dvh; 
+            overflow: hidden;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TIMER BAR */
+        .timer-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 10px;
+            background: rgba(0,0,0,0.8);
+            z-index: 99999;
+            border-bottom: 1px solid white;
+        }
+        .timer-bar {
+            width: 100%; height: 100%;
+            background: #f1c40f;
+            transform-origin: left center;
+        }
+
+        /* LANDING PAGE */
+        #landing-page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 1000;
+            background: linear-gradient(135deg, #1e8449 0%, #0b5345 100%);
+            transition: transform 0.5s ease-in-out;
+        }
+        .title-container { text-align: center; margin-bottom: 50px; z-index: 2; }
+        .title-line-1 { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; text-shadow: 0 5px 15px rgba(0,0,0,0.5); margin: 0; line-height: 1; animation: popIn 0.8s; }
+        .title-line-2 { font-size: 1.8rem; color: var(--gold); font-family: 'Brush Script MT', cursive; margin-top: 5px; animation: slideUp 1s; }
+        
+        .btn-start { 
+            padding: 18px 50px; font-size: 1.2rem; font-weight: bold; color: #fff; 
+            background: linear-gradient(to right, #e67e22, #d35400); 
+            border: 2px solid #fff; border-radius: 50px; cursor: pointer; 
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4); z-index: 2; text-transform: uppercase; 
+            animation: pulseBtn 2s infinite; margin-bottom: 20px;
+        }
+        
+        .btn-settings {
+            background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+            color: white; padding: 10px 20px; border-radius: 20px; cursor: pointer;
+            z-index: 2; font-size: 0.9rem; transition: background 0.2s;
+        }
+
+        .bg-suit { position: absolute; color: rgba(255,255,255,0.05); font-size: 4rem; animation: floatUp 10s linear infinite; z-index: 1; }
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes slideUp { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes floatUp { 0% { transform: translateY(110vh) rotate(0deg); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; } }
+
+        /* SETTINGS MODAL */
+        #settings-modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg); z-index: 2000;
+            justify-content: center; align-items: center; flex-direction: column;
+            animation: fadeIn 0.3s;
+        }
+        .settings-box {
+            background: #2c3e50; padding: 30px; border-radius: 15px; width: 90%; max-width: 400px;
+            border: 2px solid var(--gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .settings-title { color: var(--gold); font-size: 1.5rem; text-align: center; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; }
+        .setting-row { margin-bottom: 20px; }
+        .setting-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
+        .setting-val { color: var(--success); font-weight: bold; }
+        
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        .btn-close-settings { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* GAME UI */
+        #game-wrapper { display: none; height: 100%; width: 100%; flex-direction: column; opacity: 0; transition: opacity 0.5s; }
+
+        .scoreboard { display: flex; justify-content: space-between; padding: 10px 20px; background: rgba(0,0,0,0.4); z-index: 20; position: relative; }
+        .score-box { text-align: center; position: relative; width: 100px; }
+        .score-box small { display: block; font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
+        .score-box span { font-size: 1.2rem; color: var(--gold); font-weight: bold; }
+
+        /* POT UI */
+        .pot-container {
+            position: absolute;
+            top: 45%; left: 50%;
+            transform: translate(-50%, -100%);
+            text-align: center;
+            z-index: 10;
+        }
+        .pot-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+        .pot-amount { 
+            font-size: 2rem; font-weight: 900; color: var(--gold); 
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 2px 2px 0px black;
+            background: rgba(0,0,0,0.5); padding: 5px 25px; border-radius: 30px;
+            border: 2px solid var(--gold);
+            animation: pulsePot 2s infinite;
+        }
+
+        @keyframes pulsePot { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .game-area { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* DECK */
+        .deck-container { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 110px; z-index: 5; }
+        .deck-card { width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; position: absolute; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .deck-card:nth-child(1) { transform: translate(0, 0); }
+        .deck-card:nth-child(2) { transform: translate(-2px, -2px); }
+        .deck-card:nth-child(3) { transform: translate(-4px, -4px); }
+
+        .hand-area { width: 100%; max-width: 500px; display: flex; justify-content: space-between; padding: 0 20px; z-index: 2; }
+        .card-slot { width: 30%; aspect-ratio: 2.5/3.5; background: rgba(0,0,0,0.2); border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; position: relative; }
+        
+        .card { width: 100%; height: 100%; background: var(--card-white); border-radius: 6px; color: var(--text-dark); display: flex; flex-direction: column; justify-content: space-between; padding: 5px; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: absolute; top: 0; left: 0; }
+        .card.red { color: #c0392b; }
+        .card.black { color: #2c3e50; }
+        .card-center { font-size: 2rem; align-self: center; margin-top: auto; margin-bottom: auto;}
+        .card-corner.bottom { transform: rotate(180deg); }
+
+        /* ANIMATIONS */
+        .flying-card { position: absolute; width: 80px; height: 110px; background: repeating-linear-gradient(45deg, #c0392b, #c0392b 10px, #e74c3c 10px, #e74c3c 20px); border: 2px solid white; border-radius: 8px; z-index: 100; transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+
+        .flying-chip {
+            position: absolute; width: 30px; height: 30px;
+            background: radial-gradient(circle at 30% 30%, #e74c3c, #c0392b);
+            border: 4px dashed white; border-radius: 50%;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            z-index: 100;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .info-panel { min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; margin-top: auto; margin-bottom: 20px; }
+        .main-msg { font-size: 1.2rem; font-weight: bold; text-shadow: 1px 1px 2px black; }
+        .sub-msg { font-size: 0.9rem; opacity: 0.8; }
+
+        .controls { 
+            background: var(--felt-dark); 
+            padding: 20px 20px 40px 20px; 
+            padding-bottom: calc(40px + env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(255,255,255,0.1); 
+            width: 100%;
+        }
+        
+        .bet-ui { display: none; width: 100%; animation: slideUp 0.3s ease; }
+        .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+        button { border: none; padding: 15px; border-radius: 8px; font-size: 1rem; font-weight: bold; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transition: transform 0.1s; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        .btn-deal { width: 100%; background: var(--gold); color: #333; margin-bottom: 10px; }
+        
+        .btn-bet { flex: 1; background: var(--success); color: white; border: 2px solid white; }
+        .btn-pass { flex: 1; background: var(--danger); color: white; border: 2px solid white; }
+
+        .turn-overlay { position: absolute; top: 100px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; transition: opacity 0.3s; opacity: 0; }
+        .shuffle-anim { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0% { transform: translate(-50%, -50%) rotate(0deg); } 25% { transform: translate(-52%, -48%) rotate(-5deg); } 50% { transform: translate(-48%, -52%) rotate(5deg); } 75% { transform: translate(-52%, -48%) rotate(-5deg); } 100% { transform: translate(-50%, -50%) rotate(0deg); } }
+    
+        /* GAME OVER MODAL */
+        #game-over-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 10000;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        .result-title { font-size: 3rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+        .result-sub { font-size: 1.2rem; margin-bottom: 30px; opacity: 0.8; }
+        .btn-rematch {
+            background: var(--gold); color: #333; padding: 15px 40px;
+            font-size: 1.5rem; border-radius: 50px; border: none; font-weight: bold; cursor: pointer;
+            animation: pulseBtn 1s infinite;
+        }
+
+        /* IDENTITY FORM */
+        .identity-box { margin-bottom: 20px; text-align: center; z-index: 2; }
+        .input-name {
+            padding: 15px; font-size: 1.1rem; border-radius: 25px; border: none;
+            text-align: center; width: 250px; margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); outline: none;
+        }
+        .avatar-selector { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+        .avatar-opt {
+            font-size: 2rem; cursor: pointer; transition: transform 0.2s;
+            opacity: 0.5; filter: grayscale(100%);
+        }
+        .avatar-opt.selected { opacity: 1; filter: grayscale(0%); transform: scale(1.3); }
+    </style>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+    <div class="timer-container"><div id="timer-bar" class="timer-bar" style="width: 0%;"></div></div>
+
+    <div id="game-over-modal">
+        <div class="result-title" id="go-title">YOU WON!</div>
+        <div class="result-sub" id="go-sub">Opponent went bankrupt</div>
+        <button class="btn-rematch" onclick="game.requestRematch()">PLAY AGAIN</button>
+    </div>
+
+    <div id="landing-page">
+        <div class="bg-suit" style="left: 10%; animation-duration: 8s;">♠</div>
+        <div class="bg-suit" style="left: 80%; animation-duration: 12s; animation-delay: 2s;">♥</div>
+        <div class="bg-suit" style="left: 20%; animation-duration: 15s; animation-delay: 5s;">♣</div>
+        <div class="bg-suit" style="left: 70%; animation-duration: 9s; animation-delay: 1s;">♦</div>
+
+        <div class="title-container">
+            <h1 class="title-line-1">In-Between</h1>
+            <div class="title-line-2">Multiplayer PvP</div>
+        </div>
+        
+        <div class="identity-box">
+            <div class="avatar-selector">
+                <div class="avatar-opt selected" onclick="selectAvatar(this)">😎</div>
+                <div class="avatar-opt" onclick="selectAvatar(this)">🤠</div>
+                <div class="avatar-opt" onclick="selectAvatar(this)">😈</div>
+                <div class="avatar-opt" onclick="selectAvatar(this)">🤖</div>
+                <div class="avatar-opt" onclick="selectAvatar(this)">🐱</div>
+            </div>
+            <input type="text" id="input-nickname" class="input-name" placeholder="Enter Nickname" maxlength="10">
+        </div>
+
+        <button class="btn-start" onclick="enterGame()">Join Game</button>
+        <button class="btn-settings" onclick="toggleSettings(true)">⚙ Settings</button>
+    </div>
+
+    <div id="settings-modal">
+        <div class="settings-box">
+            <div class="settings-title">Game Settings</div>
+            
+            <div class="setting-row">
+                <div class="setting-label">
+                    <span>Sound Effects</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="input-sound" checked onchange="updateSettingsUI()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn-close-settings" onclick="toggleSettings(false)">Close</button>
+        </div>
+    </div>
+
+    <div id="game-wrapper">
+        <div class="scoreboard">
+            <div class="score-box" id="p1-score-box">
+                <small id="p1-name">Waiting...</small> <span id="p1-bank">1000</span>
+            </div>
+            <div class="score-box" id="p2-score-box">
+                <small id="p2-name">Waiting...</small> <span id="p2-bank">1000</span>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div id="turn-indicator" class="turn-overlay">CPU Turn</div>
+            
+            <div class="pot-container" id="pot-display-area">
+                <div class="pot-label">THE POT</div>
+                <div class="pot-amount" id="pot-val">0</div>
+            </div>
+
+            <div class="deck-container" id="deck-anchor">
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+                <div class="deck-card"></div>
+            </div>
+            
+            <div class="hand-area">
+                <div class="card-slot" id="slot-1"></div>
+                <div class="card-slot" id="slot-result"></div>
+                <div class="card-slot" id="slot-2"></div>
+            </div>
+            <div class="info-panel">
+                <div class="main-msg" id="msg-main">Welcome</div>
+                <div class="sub-msg" id="msg-sub">Press Start to begin</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div id="panel-deal">
+                <button class="btn-deal" id="btn-deal" onclick="game.startRound()">Start Round</button>
+            </div>
+            <div id="panel-bet" class="bet-ui">
+                <div class="slider-row">
+                    <span>Bet: <strong id="bet-val">5</strong></span>
+                    <input type="range" id="bet-slider" min="5" max="100" step="5" value="5">
+                </div>
+                <div class="btn-row">
+                    <button class="btn-pass" id="btn-pass-action" onclick="game.playerAction(false)">PASS (-10)</button>
+                    <button class="btn-bet" onclick="game.playerAction(true)">BET</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        let selectedAvatar = '😎';
+        function selectAvatar(el) {
+            document.querySelectorAll('.avatar-opt').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedAvatar = el.textContent;
+        }
+
+        // --- SOUND MANAGER ---
+        class SoundManager {
+            constructor() { this.enabled = true; this.ctx = null; }
+            init() {
+                if (!this.ctx) { const AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); }
+                if(this.ctx.state === 'suspended') this.ctx.resume();
+            }
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            }
+            playNoise(duration) {
+                if (!this.enabled || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * duration; const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource(); noise.buffer = buffer; const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                noise.connect(gain); gain.connect(this.ctx.destination); noise.start();
+            }
+            shuffle() { if(this.enabled) for(let i=0; i<5; i++) setTimeout(() => this.playNoise(0.1), i*60); }
+            deal() { this.playNoise(0.15); }
+            chip() { this.playTone(1200, 'sine', 0.05, 0.05); } 
+            pass() { this.playTone(600, 'sawtooth', 0.1, 0.05); }
+            win() { this.playTone(523.25, 'triangle', 0.1, 0.1); setTimeout(() => this.playTone(659.25, 'triangle', 0.1, 0.1), 100); setTimeout(() => this.playTone(783.99, 'triangle', 0.4, 0.1), 200); }
+            lose() { this.playTone(150, 'sawtooth', 0.3, 0.1); setTimeout(() => this.playTone(100, 'sawtooth', 0.5, 0.1), 200); }
+        }
+        const sfx = new SoundManager();
+
+        // --- SOCKET CONNECTION ---
+        const socket = io();
+
+        // --- ENTER GAME ---
+        function enterGame() {
+            const nameInput = document.getElementById('input-nickname').value.trim();
+            if(!nameInput) { alert("Please enter a nickname!"); return; }
+
+            sfx.init();
+            
+            // SEND JOIN REQUEST WITH DATA
+            socket.emit('join_game', { name: nameInput, avatar: selectedAvatar });
+
+            // UI Transition
+            const landing = document.getElementById('landing-page');
+            const gameWrap = document.getElementById('game-wrapper');
+            landing.style.transform = 'translateY(-100%)';
+            setTimeout(() => { landing.style.display = 'none'; gameWrap.style.display = 'flex'; gameWrap.offsetHeight; gameWrap.style.opacity = '1'; }, 500);
+        }
+
+        function toggleSettings(show) { document.getElementById('settings-modal').style.display = show ? 'flex' : 'none'; }
+        function updateSettingsUI() { sfx.enabled = document.getElementById('input-sound').checked; }
+
+        // --- CLIENT GAME CLASS ---
+        class Game {
+            constructor() {
+                this.myRole = null;
+                this.isMyTurn = false;
+                this.timerInterval = null;
+
+                // UI References
+                this.uiMsg = document.getElementById('msg-main');
+                this.uiSub = document.getElementById('msg-sub');
+                this.uiP1Name = document.getElementById('p1-name');
+                this.uiP2Name = document.getElementById('p2-name');
+                this.uiP1Bank = document.getElementById('p1-bank');
+                this.uiP2Bank = document.getElementById('p2-bank');
+                this.uiPot = document.getElementById('pot-val');
+                this.panelDeal = document.getElementById('panel-deal');
+                this.panelBet = document.getElementById('panel-bet');
+                this.slider = document.getElementById('bet-slider');
+                this.betDisplay = document.getElementById('bet-val');
+                
+                // Get Timer Element
+                this.timerBar = document.getElementById('timer-bar');
+                if(!this.timerBar) console.error("TIMER BAR MISSING IN HTML!");
+
+                this.slider.addEventListener('input', (e) => { this.betDisplay.textContent = e.target.value; });
+                this.setupSocketListeners();
+            }
+
+            setupSocketListeners() {
+                socket.on('welcome', (data) => {
+                    this.myRole = data.role;
+                    document.title = `You are ${data.role.toUpperCase()}`;
+                    this.uiMsg.textContent = `You are ${data.role === 'p1' ? 'Player 1' : 'Player 2'}`;
+                    this.uiSub.textContent = "Waiting for opponent...";
+                    this.panelDeal.style.display = 'none';
+                });
+
+                // --- THIS WAS MISSING: UPDATE PLAYERS LISTENER ---
+                socket.on('update_players', (playersData) => {
+                    if(playersData.p1) {
+                        this.uiP1Name.textContent = `${playersData.p1.avatar} ${playersData.p1.name}`;
+                        this.uiP1Bank.textContent = playersData.p1.money;
+                    } else {
+                        this.uiP1Name.textContent = "Waiting...";
+                    }
+
+                    if(playersData.p2) {
+                        this.uiP2Name.textContent = `${playersData.p2.avatar} ${playersData.p2.name}`;
+                        this.uiP2Bank.textContent = playersData.p2.money;
+                    } else {
+                        this.uiP2Name.textContent = "Waiting...";
+                    }
+                });
+
+                socket.on('game_ended', (data) => {
+                    const modal = document.getElementById('game-over-modal');
+                    const title = document.getElementById('go-title');
+                    const sub = document.getElementById('go-sub');
+                    
+                    // Stop everything
+                    this.stopTimerAnim();
+                    this.panelBet.style.display = 'none';
+                    this.panelDeal.style.display = 'none';
+
+                    modal.style.display = 'flex';
+                    
+                    if(data.winner === this.myRole) {
+                        title.textContent = "VICTORY!";
+                        title.style.color = "var(--success)";
+                        sub.textContent = "You took all the money!";
+                        sfx.win();
+                    } else {
+                        title.textContent = "BANKRUPT";
+                        title.style.color = "var(--danger)";
+                        sub.textContent = "You ran out of cash.";
+                        sfx.lose();
+                    }
+                });
+
+                socket.on('game_reset', () => {
+                    document.getElementById('game-over-modal').style.display = 'none';
+                    this.uiMsg.textContent = "New Game Started!";
+                });
+
+                socket.on('game_ready', (msg) => {
+                    this.uiSub.textContent = msg;
+                    if(this.myRole === 'p1') this.panelDeal.style.display = 'block';
+                });
+
+                // TIMER EVENT
+                socket.on('timer_start', (duration) => {
+                    this.startTimerAnim(duration);
+                });
+
+                socket.on('new_hand_dealt', async (data) => {
+                    this.updateDisplay(data);
+                    this.panelDeal.style.display = 'none';
+                    document.querySelectorAll('.card-slot').forEach(el => el.innerHTML = '');
+
+                    if(data.antePaid) {
+                        await this.animateChip('p1-score-box', 'pot-display-area'); // Fallback to p1-score-box if p-score-box not found
+                        await this.animateChip('p2-score-box', 'pot-display-area');
+                    }
+                    
+                    sfx.deal();
+                    await this.animateCardFly('slot-1', data.card1);
+                    await this.animateCardFly('slot-2', data.card2);
+
+                    if(data.activePlayer === this.myRole) {
+                        this.isMyTurn = true;
+                        this.uiMsg.textContent = "Your Turn";
+                        this.uiMsg.style.color = "var(--gold)";
+                        this.panelBet.style.display = 'block';
+                        
+                        const myMoney = this.myRole === 'p1' ? data.p1Money : data.p2Money;
+                        const maxBet = Math.min(myMoney, data.pot);
+                        this.slider.max = maxBet;
+                        this.slider.value = 5;
+                        this.betDisplay.textContent = 5;
+                    } else {
+                        this.isMyTurn = false;
+                        this.uiMsg.textContent = `${data.activePlayer.toUpperCase()}'s Turn`;
+                        this.uiMsg.style.color = "white";
+                        this.panelBet.style.display = 'none';
+                    }
+                });
+
+                socket.on('turn_resolved', async (data) => {
+                    this.stopTimerAnim();
+                    this.panelBet.style.display = 'none';
+                    
+                    let name = data.who === this.myRole ? "You" : data.who.toUpperCase();
+                    
+                    if(data.result === 'pass') {
+                        this.uiMsg.textContent = `${name} Passed`;
+                        await this.animateChip(data.who === 'p1' ? 'p1-score-box' : 'p2-score-box', 'pot-display-area');
+                    } else {
+                        this.uiMsg.textContent = `${name} Bets ${data.amount}`;
+                        if(data.cardResult) await this.animateCardFly('slot-result', data.cardResult);
+                        
+                        if(data.result === 'win') {
+                            this.uiMsg.textContent = `${name} WON!`;
+                            this.uiMsg.style.color = "var(--success)";
+                            sfx.win();
+                            await this.animateChip('pot-display-area', data.who === 'p1' ? 'p1-score-box' : 'p2-score-box');
+                        } else {
+                            this.uiMsg.textContent = `${name} LOST!`;
+                            this.uiMsg.style.color = "var(--danger)";
+                            sfx.lose();
+                        }
+                    }
+                    this.updateDisplay(data);
+                });
+
+                socket.on('round_over', (data) => {
+                    this.stopTimerAnim();
+                    this.uiMsg.textContent = "Round Over";
+                    this.uiMsg.style.color = "white";
+                    
+                    if(data.nextStart === this.myRole) {
+                        this.uiSub.textContent = "You start next round";
+                        this.panelDeal.style.display = 'block';
+                    } else {
+                        this.uiSub.textContent = `Waiting for ${data.nextStart.toUpperCase()} to start...`;
+                    }
+                });
+                
+                socket.on('reset_game', () => { location.reload(); });
+            }
+
+            // --- ANIMATION LOGIC ---
+            startTimerAnim(duration) {
+                console.log("VISUALS: Starting Timer for " + duration + "s");
+                this.timerBar.style.transition = 'none';
+                this.timerBar.style.width = '100%';
+                this.timerBar.style.background = '#f1c40f'; // Gold
+
+                // Force Reflow
+                void this.timerBar.offsetHeight; 
+
+                this.timerBar.style.transition = `width ${duration}s linear`;
+                this.timerBar.style.width = '0%';
+            }
+
+            stopTimerAnim() {
+                const currentWidth = getComputedStyle(this.timerBar).width;
+                this.timerBar.style.transition = 'none';
+                this.timerBar.style.width = currentWidth;
+            }
+
+            // --- ACTIONS ---
+            startRound() { socket.emit('req_start_round'); }
+
+            playerAction(isBetting) {
+                if(!this.isMyTurn) return;
+                if(!isBetting) socket.emit('req_action', { action: 'pass' });
+                else socket.emit('req_action', { action: 'bet', amount: this.slider.value });
+            }
+
+            // Fixed: Moved outside of constructor
+            requestRematch() {
+                socket.emit('req_rematch');
+            }
+
+            updateDisplay(data) {
+                this.uiP1Bank.innerText = data.p1Money;
+                this.uiP2Bank.innerText = data.p2Money;
+                this.uiPot.innerText = data.pot;
+            }
+
+            animateCardFly(targetId, cardData) {
+                return new Promise(resolve => {
+                    sfx.deal();
+                    const deckRect = document.getElementById('deck-anchor').getBoundingClientRect();
+                    const targetEl = document.getElementById(targetId);
+                    const targetRect = targetEl.getBoundingClientRect();
+                    const flyer = document.createElement('div');
+                    flyer.className = 'flying-card';
+                    flyer.style.left = deckRect.left + 'px'; flyer.style.top = deckRect.top + 'px';
+                    document.body.appendChild(flyer);
+                    flyer.getBoundingClientRect();
+                    flyer.style.left = targetRect.left + 'px'; flyer.style.top = targetRect.top + 'px';
+                    flyer.style.width = targetRect.width + 'px'; flyer.style.height = targetRect.height + 'px';
+                    flyer.style.transform = 'rotate(360deg)';
+                    setTimeout(() => {
+                        flyer.remove();
+                        targetEl.innerHTML = `<div class="card ${cardData.color}"><div class="card-corner top">${cardData.rank}<span>${cardData.suit}</span></div><div class="card-center">${cardData.suit}</div><div class="card-corner bottom">${cardData.rank}<span>${cardData.suit}</span></div></div>`;
+                        resolve();
+                    }, 500);
+                });
+            }
+
+            animateChip(fromId, toId) {
+                return new Promise(resolve => {
+                    const fromEl = document.getElementById(fromId);
+                    const toEl = document.getElementById(toId);
+                    
+                    // Safety check if elements exist
+                    if(!fromEl || !toEl) { resolve(); return; }
+
+                    sfx.chip();
+                    const fromRect = fromEl.getBoundingClientRect();
+                    const toRect = toEl.getBoundingClientRect();
+                    const chip = document.createElement('div');
+                    chip.className = 'flying-chip';
+                    chip.style.left = (fromRect.left + fromRect.width/2 - 15) + 'px';
+                    chip.style.top = (fromRect.top + fromRect.height/2 - 15) + 'px';
+                    document.body.appendChild(chip);
+                    chip.getBoundingClientRect();
+                    chip.style.left = (toRect.left + toRect.width/2 - 15) + 'px';
+                    chip.style.top = (toRect.top + toRect.height/2 - 15) + 'px';
+                    setTimeout(() => { chip.remove(); resolve(); }, 600);
+                });
+            }
+        }
+        const game = new Game();
+    </script>
+</body>
+</html>
